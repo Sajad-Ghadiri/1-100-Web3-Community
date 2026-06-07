@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 // 1. Import Vazirmatn directly from Next.js
 import { Vazirmatn } from "next/font/google";
 import "./globals.css";
+import { Providers } from "./providers";
 
 // 2. Configure the font for Arabic/Persian subsets
 const vazir = Vazirmatn({
@@ -30,7 +31,7 @@ export default function RootLayout({
         className="min-h-full flex flex-col"
         style={{ fontFamily: "var(--font-vazirmatn), sans-serif" }}
       >
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

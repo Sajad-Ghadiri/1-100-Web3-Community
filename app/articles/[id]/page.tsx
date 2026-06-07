@@ -3,17 +3,16 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import { createClient } from "../../../src/utils/supabase/server";
+import Web3Comments from "../../components/Web3Comments";
 
 interface Props {
   params: Promise<{ id: string }>;
 }
 
 export default async function ArticlePage({ params }: Props) {
-  // 1. Await params for Next.js 15+ compatibility
   const resolvedParams = await params;
   const supabase = await createClient();
 
-  // 2. Fetch using ONLY the columns we actually created in Supabase
   const { data: article } = await supabase
     .from("articles")
     .select("id, title, description, content, image_url, published, created_at")
@@ -27,10 +26,19 @@ export default async function ArticlePage({ params }: Props) {
     ? new Date(article.created_at).toISOString().split("T")[0]
     : "—";
 
+  const { data: comments } = await supabase
+    .from("comments")
+    .select(
+      "id, article_id, wallet_address, chain_id, content, signature, signed_message, created_at"
+    )
+    .eq("article_id", resolvedParams.id)
+    .order("created_at", { ascending: false });
+
   return (
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Share+Tech+Mono&family=Inter:wght@300;400;500&display=swap');
+
         :root {
           --green:  #00ff88;
           --green2: #00cc66;
@@ -41,13 +49,19 @@ export default async function ArticlePage({ params }: Props) {
           --text:   #c8d8c8;
           --muted:  #4a6a4a;
         }
-        body { background: var(--bg); color: var(--text); }
+
+        body {
+          background: var(--bg);
+          color: var(--text);
+        }
+
         .grid-bg {
           background-image:
             linear-gradient(var(--border) 1px, transparent 1px),
             linear-gradient(90deg, var(--border) 1px, transparent 1px);
           background-size: 40px 40px;
         }
+
         .cursor::after {
           content: '█';
           color: var(--green);
@@ -55,7 +69,11 @@ export default async function ArticlePage({ params }: Props) {
           margin-left: 2px;
           font-size: 0.8em;
         }
-        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+        @keyframes blink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0; }
+        }
       `}</style>
 
       <div className="min-h-screen grid-bg relative">
@@ -99,6 +117,7 @@ export default async function ArticlePage({ params }: Props) {
             >
               TRANSMISSION DATE: {date}
             </div>
+
             <h1
               style={{
                 fontFamily: "'Orbitron', monospace",
@@ -111,6 +130,7 @@ export default async function ArticlePage({ params }: Props) {
             >
               {article.title}
             </h1>
+
             <p
               style={{
                 fontFamily: "'Inter', sans-serif",
@@ -128,6 +148,7 @@ export default async function ArticlePage({ params }: Props) {
           {/* COVER IMAGE */}
           {article.image_url && (
             <div className="mb-12 border border-neutral-800 relative">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={article.image_url}
                 alt={article.title}
@@ -150,27 +171,11 @@ export default async function ArticlePage({ params }: Props) {
             <ReactMarkdown>{article.content}</ReactMarkdown>
           </article>
 
-          {/* PLACEHOLDER FOR WEB3 COMMENTS (PHASE 4) */}
-          <div
-            className="mt-20 pt-10"
-            style={{
-              borderTop: "1px solid var(--border)",
-              textAlign: "center",
-            }}
-          >
-            <div
-              style={{
-                fontFamily: "'Share Tech Mono', monospace",
-                fontSize: "0.8rem",
-                color: "var(--muted)",
-                letterSpacing: "0.1em",
-              }}
-            >
-              <span style={{ color: "var(--green)" }}>[ SYSTEM MESSAGE ]</span>{" "}
-              WEB3 COMMENT MODULE PENDING INSTALLATION{" "}
-              <span className="cursor" />
-            </div>
-          </div>
+          {/* WEB3 COMMENTS */}
+          <Web3Comments
+            articleId={resolvedParams.id}
+            initialComments={comments ?? []}
+          />
         </main>
       </div>
     </>
